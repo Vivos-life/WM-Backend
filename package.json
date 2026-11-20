@@ -1,0 +1,29 @@
+{
+  "name": "what-matters-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "db:up": "docker compose up -d db",
+    "migrate": "node --env-file-if-exists=.env src/migrate.ts",
+    "start": "node --env-file-if-exists=.env src/server.ts",
+    "test": "node --env-file-if-exists=.env --test --test-concurrency=1 test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fastify/rate-limit": "^11.2.2",
+    "@node-rs/argon2": "^2.2.2",
+    "fastify": "^5.12.8",
+    "nodemailer": "^10.6.0",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "@types/nodemailer": "^8.0.2",
+    "@types/pg": "^8.23.1",
+    "typescript": "~6.0.3"
+  }
+}

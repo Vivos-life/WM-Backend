@@ -1,0 +1,1 @@
+CREATE DATABASE wm_test OWNER wm;

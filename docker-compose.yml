@@ -1,0 +1,16 @@
+# Development and test database only. Production Postgres runs on the VPS.
+services:
+  db:
+    image: postgres:16
+    container_name: wm-postgres
+    environment:
+      POSTGRES_USER: wm
+      POSTGRES_PASSWORD: wm-dev-only
+      POSTGRES_DB: wm
+    ports:
+      - "127.0.0.1:5544:5432"
+    volumes:
+      - wm-pgdata:/var/lib/postgresql/data
+      - ./scripts/create-test-db.sql:/docker-entrypoint-initdb.d/create-test-db.sql:ro
+volumes:
+  wm-pgdata:
