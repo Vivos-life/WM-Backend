@@ -15,9 +15,14 @@ export async function fresh(over: Partial<Config> = {}) {
   await db.query('DROP SCHEMA public CASCADE; CREATE SCHEMA public');
   await migrate(db);
   const sent: Mail[] = [];
-  const app = await buildApp(db, cfg, async (m) => { sent.push(m); });
+  const app = await buildApp(db, cfg, async (m) => {
+    sent.push(m);
+  });
   app.log.level = 'silent';
-  const close = async () => { await app.close(); await db.end(); };
+  const close = async () => {
+    await app.close();
+    await db.end();
+  };
   const call = (method: 'GET' | 'POST' | 'PUT' | 'DELETE', url: string, body?: object, token?: string) =>
     app.inject({ method, url, payload: body, headers: token ? { authorization: 'Bearer ' + token } : {} });
   /** The 6-digit code in the latest email to this address. Mail goes out after the reply, so it waits a tick first. */

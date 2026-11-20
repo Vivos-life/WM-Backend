@@ -7,5 +7,7 @@ export type Mailer = (m: Mail) => Promise<void>;
 
 export function smtpMailer(cfg: Config): Mailer {
   const t = nodemailer.createTransport(cfg.smtpUrl);
-  return async (m) => { await t.sendMail({ from: cfg.mailFrom, ...m }); };
+  return async (m) => {
+    await t.sendMail({ from: cfg.mailFrom, ...m });
+  };
 }

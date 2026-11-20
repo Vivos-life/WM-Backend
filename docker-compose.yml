@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: wm-dev-only
       POSTGRES_DB: wm
     ports:
-      - "127.0.0.1:5544:5432"
+      - '127.0.0.1:5544:5432'
     volumes:
       - wm-pgdata:/var/lib/postgresql/data
       - ./scripts/create-test-db.sql:/docker-entrypoint-initdb.d/create-test-db.sql:ro

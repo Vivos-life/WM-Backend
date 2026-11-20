@@ -11,7 +11,11 @@
     "migrate": "node --env-file-if-exists=.env src/migrate.ts",
     "start": "node --env-file-if-exists=.env src/server.ts",
     "test": "node --env-file-if-exists=.env --test --test-concurrency=1 test/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm test"
   },
   "dependencies": {
     "@fastify/rate-limit": "^11.2.2",
@@ -21,9 +25,13 @@
     "pg": "^8.23.1"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^24.19.2",
     "@types/nodemailer": "^8.0.2",
     "@types/pg": "^8.23.1",
-    "typescript": "~6.0.3"
+    "eslint": "^10.15.0",
+    "prettier": "^3.10.1",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.73.0"
   }
 }

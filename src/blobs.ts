@@ -9,7 +9,9 @@ export const KINDS = ['cfg', 'pf', 'plan'] as const;
 const MAX_ENVELOPE = 1_000_000;
 
 const putBody = {
-  type: 'object', required: ['version', 'envelope'], additionalProperties: false,
+  type: 'object',
+  required: ['version', 'envelope'],
+  additionalProperties: false,
   properties: {
     // The version this save replaces: 0 for the first save. A mismatch means another device saved first.
     version: { type: 'integer', minimum: 0 },
@@ -25,9 +27,14 @@ export const blobRoutes = (repo: Repo) => async (app: FastifyInstance) => {
     req.user = user;
   });
 
-  app.get('/blobs', async (req) => (await repo.blobs(req.user)).map((b) => ({
-    kind: b.kind, version: b.version, envelope: b.envelope.toString('base64'), updatedAt: b.updatedAt.toISOString(),
-  })));
+  app.get('/blobs', async (req) =>
+    (await repo.blobs(req.user)).map((b) => ({
+      kind: b.kind,
+      version: b.version,
+      envelope: b.envelope.toString('base64'),
+      updatedAt: b.updatedAt.toISOString(),
+    })),
+  );
 
   app.put<{ Params: { kind: string }; Body: { version: number; envelope: string } }>(
     '/blobs/:kind',
@@ -44,5 +51,7 @@ export const blobRoutes = (repo: Repo) => async (app: FastifyInstance) => {
 };
 
 declare module 'fastify' {
-  interface FastifyRequest { user: string }
+  interface FastifyRequest {
+    user: string;
+  }
 }

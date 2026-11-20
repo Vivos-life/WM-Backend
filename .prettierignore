@@ -1,0 +1,3 @@
+node_modules/
+# Docs keep their hand layout (tables, line breaks).
+*.md
