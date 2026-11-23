@@ -3,11 +3,15 @@ import { buildApp } from '../src/app.ts';
 import { loadConfig, type Config } from '../src/config.ts';
 import { connect, migrate } from '../src/db.ts';
 import type { Mail } from '../src/mail.ts';
+import { memoryStore } from '../src/photos.ts';
 
-// Tests need no .env: they default to the docker-compose database. Mail is captured, never sent.
-process.env.TEST_DATABASE_URL ??= 'postgres://wm:wm-dev-only@127.0.0.1:5544/wm_test';
-process.env.SMTP_URL ??= 'smtp://unused.invalid';
-process.env.MAIL_FROM ??= 'What Matters <test@example.com>';
+// Tests need no .env: they default to the docker-compose database (an empty value in .env counts as unset). Mail is
+// captured, never sent.
+process.env.TEST_DATABASE_URL ||= 'postgres://wm:wm-dev-only@127.0.0.1:5544/wm_test';
+for (const k of ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS']) process.env[k] ||= 'unused.invalid';
+process.env.MAIL_FROM ||= 'What Matters <test@example.com>';
+// Photos go to memory in tests; the R2 settings only need to be present.
+for (const k of ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET']) process.env[k] ||= 'unused';
 
 export async function fresh(over: Partial<Config> = {}) {
   const cfg = { ...loadConfig('test'), ...over };
@@ -15,9 +19,15 @@ export async function fresh(over: Partial<Config> = {}) {
   await db.query('DROP SCHEMA public CASCADE; CREATE SCHEMA public');
   await migrate(db);
   const sent: Mail[] = [];
-  const app = await buildApp(db, cfg, async (m) => {
-    sent.push(m);
-  });
+  const photos = memoryStore();
+  const app = await buildApp(
+    db,
+    cfg,
+    async (m) => {
+      sent.push(m);
+    },
+    photos,
+  );
   app.log.level = 'silent';
   const close = async () => {
     await app.close();
@@ -36,5 +46,5 @@ export async function fresh(over: Partial<Config> = {}) {
     await call('POST', '/auth/register', { email, password });
     return (await call('POST', '/auth/verify', { email, code: await codeFor(email) })).json();
   };
-  return { app, db, cfg, call, register, codeFor, close, sent };
+  return { app, db, cfg, call, register, codeFor, close, sent, photos };
 }

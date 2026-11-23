@@ -214,7 +214,7 @@ test('account deletion: password again, 30 days to change your mind, then everyt
     const del = await t.call('DELETE', '/account', { password: 'correct horse' }, a.accessToken);
     assert.equal(del.statusCode, 200);
     assert.equal(await days(), DELETE_DAYS);
-    assert.equal(await repo.purgeDeleted(), 0, 'nothing goes before the date');
+    assert.equal((await repo.purgeDeleted()).length, 0, 'nothing goes before the date');
     assert.equal(
       (await t.call('GET', '/blobs', undefined, a.accessToken)).json().length,
       1,
@@ -233,7 +233,7 @@ test('account deletion: password again, 30 days to change your mind, then everyt
 
     // The date comes: the account, its sessions and its records go; other accounts are untouched.
     await t.db.query("UPDATE users SET delete_at = now() - interval '1 second' WHERE email = 'alex@example.com'");
-    assert.equal(await repo.purgeDeleted(), 1);
+    assert.equal((await repo.purgeDeleted()).length, 1);
     const left = async (sql: string) => (await t.db.query(sql)).rows.map((r) => r.email ?? r.n);
     assert.deepEqual(await left('SELECT email FROM users'), ['sam@example.com']);
     assert.deepEqual(

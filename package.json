@@ -15,11 +15,14 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm test"
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm test",
+    "r2:check": "node --env-file-if-exists=.env scripts/r2-check.ts",
+    "mail:check": "node --env-file-if-exists=.env scripts/mail-check.ts"
   },
   "dependencies": {
     "@fastify/rate-limit": "^11.2.2",
     "@node-rs/argon2": "^2.2.2",
+    "aws4fetch": "^1.0.20",
     "fastify": "^5.12.8",
     "nodemailer": "^10.6.0",
     "pg": "^8.23.1"

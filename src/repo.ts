@@ -86,10 +86,11 @@ export function createRepo(db: Db) {
       );
       return rows[0]?.delete_at ?? null;
     },
-    /** Deletes every account whose date has come: sessions, codes and household records go with it (ON DELETE CASCADE). How many. */
-    async purgeDeleted(): Promise<number> {
-      const { rowCount } = await db.query('DELETE FROM users WHERE delete_at <= now()');
-      return rowCount ?? 0;
+    /** Deletes every account whose date has come: sessions, codes and household records go with it (ON DELETE CASCADE).
+     *  The ids deleted, so their photos can go too. */
+    async purgeDeleted(): Promise<string[]> {
+      const { rows } = await db.query<{ id: string }>('DELETE FROM users WHERE delete_at <= now() RETURNING id');
+      return rows.map((r) => r.id);
     },
 
     // ---- Sessions
