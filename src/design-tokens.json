@@ -1,0 +1,495 @@
+{
+  "version": "v12",
+  "date": "2026-11-04",
+  "fonts": {
+    "display": "Manrope 500–800",
+    "accent": "Instrument Serif italic",
+    "body": "DM Sans 400–700",
+    "accessible": "Atkinson Hyperlegible 400/700 (Accessibility › Dyslexia-friendly / easier reading)"
+  },
+  "radius": {
+    "tile": "28–32px",
+    "card": "18–22px",
+    "button": "14–18px",
+    "chip": "999px",
+    "sheet": "28px top corners"
+  },
+  "touch": {
+    "min": "44px",
+    "primaryButton": "52px"
+  },
+  "base": {
+    "--pop": "var(--glow)",
+    "--onpop": "var(--onglow)",
+    "--ring": "conic-gradient(from 210deg,var(--pop),var(--glow),var(--loved),var(--lav),var(--tax),var(--sage),var(--pop))",
+    "--rainbow": "conic-gradient(from 210deg,#FF6B8B,#FFA24C,#FFD84D,#6EDC8C,#4FB3FF,#9B7BFF,#FF6B8B)",
+    "--hero": "linear-gradient(160deg,var(--hA) 0%,var(--hB) 55%,var(--hC) 100%)",
+    "--hmut": "color-mix(in srgb,var(--hink) 86%,var(--hB))"
+  },
+  "moods": {
+    "mauve": {
+      "--pop": "#F29E86",
+      "--bg": "#F7EFE7",
+      "--ink": "#3E3239",
+      "--muted": "#65595d",
+      "--line": "#E8D2C4",
+      "--surface": "#FFFBF8",
+      "--wash": "#F0E2D8",
+      "--accent": "#6B5560",
+      "--stage": "#EADCD1",
+      "--nav": "#3E3239",
+      "--chip": "#F0E2D8",
+      "--loved": "#E3B1A6",
+      "--tax": "#EBC3A3",
+      "--hA": "#6B5560",
+      "--hB": "#3E3239",
+      "--hC": "#9E8189",
+      "--hink": "#F7EFE7",
+      "--glow": "#F0D9BC",
+      "--onglow": "#3E3239",
+      "--lav": "#D9B6C4",
+      "--sage": "#CDB8A6",
+      "--c1": "#7A5C6B",
+      "--c2": "#CFA25B",
+      "--c3": "#DD6E58"
+    },
+    "evergreen": {
+      "--pop": "#F4C38E",
+      "--bg": "#051F20",
+      "--ink": "#EAF6EC",
+      "--muted": "#A9C7B2",
+      "--line": "#1E4A40",
+      "--surface": "#0B2B26",
+      "--wash": "#123630",
+      "--accent": "#8EB69B",
+      "--stage": "#021213",
+      "--nav": "#0B2B26",
+      "--chip": "#123630",
+      "--loved": "#EAD7A4",
+      "--tax": "#E9A97E",
+      "--hA": "#235347",
+      "--hB": "#0B2B26",
+      "--hC": "#163832",
+      "--hink": "#F2FBF3",
+      "--glow": "#DAF1DE",
+      "--onglow": "#051F20",
+      "--lav": "#B5D6A7",
+      "--sage": "#8FD3C0",
+      "--c1": "#8FD3C0",
+      "--c2": "#F2C66D",
+      "--c3": "#E9805E"
+    },
+    "honey": {
+      "--pop": "#E8743B",
+      "--bg": "#EFE7CF",
+      "--ink": "#1B1712",
+      "--muted": "#5d584d",
+      "--line": "#DCCFAE",
+      "--surface": "#FBF7EA",
+      "--wash": "#E6DBBD",
+      "--accent": "#9A4E12",
+      "--stage": "#E2D6B4",
+      "--nav": "#3A2A22",
+      "--chip": "#E6DBBD",
+      "--loved": "#EED7A0",
+      "--tax": "#E8A06A",
+      "--hA": "#6B4A1E",
+      "--hB": "#3A2A22",
+      "--hC": "#7A3E1A",
+      "--hink": "#FFF8E8",
+      "--glow": "#F4C34A",
+      "--onglow": "#1B1712",
+      "--lav": "#D9B48A",
+      "--sage": "#CDB97E",
+      "--c1": "#9A4E12",
+      "--c2": "#E3A92B",
+      "--c3": "#C8462A"
+    },
+    "slate": {
+      "--pop": "#F4B58A",
+      "--bg": "#06141B",
+      "--ink": "#EEF1F0",
+      "--muted": "#acb7b9",
+      "--line": "#253745",
+      "--surface": "#11212D",
+      "--wash": "#1A2C39",
+      "--accent": "#CCD0CF",
+      "--stage": "#02090D",
+      "--nav": "#1A2C39",
+      "--chip": "#1A2C39",
+      "--loved": "#9FC9E8",
+      "--tax": "#DDBFA6",
+      "--hA": "#253745",
+      "--hB": "#11212D",
+      "--hC": "#4A5C6A",
+      "--hink": "#FFFFFF",
+      "--glow": "#D9DEDD",
+      "--onglow": "#06141B",
+      "--lav": "#B4C3CF",
+      "--sage": "#C9D8E2",
+      "--c1": "#7FB8E6",
+      "--c2": "#E6C08A",
+      "--c3": "#F08A6C"
+    },
+    "amalfi": {
+      "--pop": "#FFD84A",
+      "--bg": "#FBF8EE",
+      "--ink": "#0C2340",
+      "--muted": "#4e5f71",
+      "--line": "#ECE4CC",
+      "--surface": "#FFFDF6",
+      "--wash": "#F3EDDA",
+      "--accent": "#1F5BB8",
+      "--stage": "#ECE4CC",
+      "--nav": "#0A2042",
+      "--chip": "#E9E0C6",
+      "--loved": "#B9DAFF",
+      "--tax": "#FF9E73",
+      "--hA": "#2257A0",
+      "--hB": "#0D2A52",
+      "--hC": "#0B1E3E",
+      "--hink": "#FFFBEE",
+      "--glow": "#FFD84A",
+      "--onglow": "#0D2A52",
+      "--lav": "#8CC2FF",
+      "--sage": "#FFC4A3",
+      "--c1": "#1F5BB8",
+      "--c2": "#E8B400",
+      "--c3": "#E8613C"
+    },
+    "sunset": {
+      "--pop": "#FFB3C8",
+      "--bg": "#FFF6F2",
+      "--ink": "#2A0E2E",
+      "--muted": "#6a5469",
+      "--line": "#F6DDD3",
+      "--surface": "#FFFCFA",
+      "--wash": "#FFE9E2",
+      "--accent": "#B8337E",
+      "--stage": "#F6DDD3",
+      "--nav": "#45155A",
+      "--chip": "#FADBD2",
+      "--loved": "#B2F9EC",
+      "--tax": "#FFC7D6",
+      "--hA": "#5B2A9E",
+      "--hB": "#A1307E",
+      "--hC": "#A92855",
+      "--hink": "#FFF6F2",
+      "--glow": "#FFDC80",
+      "--onglow": "#5B1E6B",
+      "--lav": "#7FF5E0",
+      "--sage": "#FFD1B8",
+      "--c1": "#B8337E",
+      "--c2": "#2FB8A3",
+      "--c3": "#FF8A5C"
+    },
+    "nocturne": {
+      "--pop": "#FFB48A",
+      "--bg": "#0B141E",
+      "--ink": "#FFFDF8",
+      "--muted": "#afb7c3",
+      "--line": "#2a3949",
+      "--surface": "#142331",
+      "--wash": "#1c2c3b",
+      "--accent": "#C9B8FF",
+      "--stage": "#04080c",
+      "--nav": "#1b2938",
+      "--chip": "#1c2c3b",
+      "--loved": "#B8C6FF",
+      "--tax": "#E6C3E8",
+      "--hA": "#2B2A5C",
+      "--hB": "#141833",
+      "--hC": "#4A2747",
+      "--hink": "#FFFDF8",
+      "--glow": "#C9B8FF",
+      "--onglow": "#141833",
+      "--lav": "#A9D4EC",
+      "--sage": "#E9D2A6",
+      "--c1": "#9FB4FF",
+      "--c2": "#E8C27A",
+      "--c3": "#FF8A7A"
+    },
+    "golden": {
+      "--pop": "#E07A4F",
+      "--bg": "#FBF6EF",
+      "--ink": "#0E1A27",
+      "--muted": "#4e5963",
+      "--line": "#ded5cb",
+      "--surface": "#fffaf5",
+      "--wash": "#f0e9df",
+      "--accent": "#A94E2A",
+      "--stage": "#e7e0d6",
+      "--nav": "#253443",
+      "--chip": "#efe7dc",
+      "--loved": "#F4D6A8",
+      "--tax": "#F2AE8E",
+      "--hA": "#24406A",
+      "--hB": "#132338",
+      "--hC": "#5A2E3E",
+      "--hink": "#FFFDF8",
+      "--glow": "#FFC79E",
+      "--onglow": "#17283d",
+      "--lav": "#EBCDBE",
+      "--sage": "#C9D6E3",
+      "--c1": "#24406A",
+      "--c2": "#D9A441",
+      "--c3": "#D2552E"
+    },
+    "bab": {
+      "--pop": "#FF8C6B",
+      "--bg": "#F5EBDD",
+      "--ink": "#0B2E3A",
+      "--muted": "#3d565d",
+      "--line": "#E6D5BE",
+      "--surface": "#F3E8D8",
+      "--wash": "#EFE2CF",
+      "--accent": "#0F6F73",
+      "--stage": "#E6D5BE",
+      "--nav": "#083B4B",
+      "--chip": "#E5D3BB",
+      "--loved": "#8FE3D4",
+      "--tax": "#F6D9AE",
+      "--hA": "#116467",
+      "--hB": "#0B4E63",
+      "--hC": "#13355A",
+      "--hink": "#FBF3E6",
+      "--glow": "#F0C98A",
+      "--onglow": "#0B4E63",
+      "--lav": "#FFC2B5",
+      "--sage": "#B9E6E0",
+      "--c1": "#0F6F73",
+      "--c2": "#E3A93C",
+      "--c3": "#E8613C"
+    }
+  },
+  "mark": {
+    "note": "Cairn mark colours per mood. A = base stone (3 stops), B = middle, C = top (gold), sh = shadow, r = reversed flat colours for dark hero surfaces. Brand icon uses Sunset.",
+    "moods": {
+      "mauve": {
+        "A": [
+          "#8A7880",
+          "#6B5560",
+          "#3E3239"
+        ],
+        "B": [
+          "#E58F76",
+          "#DD6E58"
+        ],
+        "C": [
+          "#ECDABF",
+          "#CFA25B"
+        ],
+        "sh": "#3E3239",
+        "r": [
+          "#D9B6C4",
+          "#DD6E58",
+          "#CFA25B"
+        ],
+        "iconBackground": [
+          "#F7EFE7",
+          "#F5DBD0"
+        ]
+      },
+      "evergreen": {
+        "A": [
+          "#B8E3D6",
+          "#8FD3C0",
+          "#6BA596"
+        ],
+        "B": [
+          "#E9A485",
+          "#E9805E"
+        ],
+        "C": [
+          "#FAE9C8",
+          "#F2C66D"
+        ],
+        "sh": "#000000",
+        "r": [
+          "#8FD3C0",
+          "#E9805E",
+          "#F2C66D"
+        ],
+        "iconBackground": [
+          "#235347",
+          "#0B2B26"
+        ]
+      },
+      "honey": {
+        "A": [
+          "#8A6F4E",
+          "#6B4A1E",
+          "#3A2A22"
+        ],
+        "B": [
+          "#D76E33",
+          "#B64A22"
+        ],
+        "C": [
+          "#FBE8BE",
+          "#F4C34A"
+        ],
+        "sh": "#1B1712",
+        "r": [
+          "#FFF8E8",
+          "#C8462A",
+          "#F4C34A"
+        ],
+        "iconBackground": [
+          "#EFE7CF",
+          "#ECCEB5"
+        ]
+      },
+      "slate": {
+        "A": [
+          "#ACD1F0",
+          "#7FB8E6",
+          "#618FB3"
+        ],
+        "B": [
+          "#ECA58F",
+          "#F08A6C"
+        ],
+        "C": [
+          "#F5E6D1",
+          "#E6C08A"
+        ],
+        "sh": "#000000",
+        "r": [
+          "#7FB8E6",
+          "#F08A6C",
+          "#E6C08A"
+        ],
+        "iconBackground": [
+          "#253745",
+          "#11212D"
+        ]
+      },
+      "amalfi": {
+        "A": [
+          "#527BB6",
+          "#2257A0",
+          "#0D2A52"
+        ],
+        "B": [
+          "#F18741",
+          "#E8613C"
+        ],
+        "C": [
+          "#FFF1C1",
+          "#FFD84A"
+        ],
+        "sh": "#0C2340",
+        "r": [
+          "#8CC2FF",
+          "#E8613C",
+          "#FFD84A"
+        ],
+        "iconBackground": [
+          "#FBF8EE",
+          "#FBE1D2"
+        ]
+      },
+      "sunset": {
+        "A": [
+          "#7B5CB6",
+          "#5B2A9E",
+          "#A1307E"
+        ],
+        "B": [
+          "#FFA467",
+          "#E46C6F"
+        ],
+        "C": [
+          "#FFF2CF",
+          "#FFDC80"
+        ],
+        "sh": "#2A0E2E",
+        "r": [
+          "#FFB3C8",
+          "#FF8A5C",
+          "#FFDC80"
+        ],
+        "iconBackground": [
+          "#FFF6F2",
+          "#FFE5DA"
+        ]
+      },
+      "nocturne": {
+        "A": [
+          "#C0CFFF",
+          "#9FB4FF",
+          "#7989C7"
+        ],
+        "B": [
+          "#F19BA5",
+          "#FF8A7A"
+        ],
+        "C": [
+          "#F6E7CB",
+          "#E8C27A"
+        ],
+        "sh": "#000000",
+        "r": [
+          "#9FB4FF",
+          "#FF8A7A",
+          "#E8C27A"
+        ],
+        "iconBackground": [
+          "#2B2A5C",
+          "#141833"
+        ]
+      },
+      "golden": {
+        "A": [
+          "#50678A",
+          "#24406A",
+          "#132338"
+        ],
+        "B": [
+          "#E17951",
+          "#C2522D"
+        ],
+        "C": [
+          "#F1DBB8",
+          "#D9A441"
+        ],
+        "sh": "#0E1A27",
+        "r": [
+          "#FFC79E",
+          "#D2552E",
+          "#D9A441"
+        ],
+        "iconBackground": [
+          "#FBF6EF",
+          "#F8DDD0"
+        ]
+      },
+      "bab": {
+        "A": [
+          "#4F8486",
+          "#116467",
+          "#0B4E63"
+        ],
+        "B": [
+          "#ED8354",
+          "#E8613C"
+        ],
+        "C": [
+          "#F9EAD1",
+          "#F0C98A"
+        ],
+        "sh": "#0B2E3A",
+        "r": [
+          "#8FE3D4",
+          "#E8613C",
+          "#F0C98A"
+        ],
+        "iconBackground": [
+          "#F5EBDD",
+          "#F6D6C4"
+        ]
+      }
+    }
+  }
+}

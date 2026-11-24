@@ -8,7 +8,7 @@ import { hash, verify } from '@node-rs/argon2';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { Config } from './config.ts';
 import type { CodePurpose, NewSession, Repo } from './repo.ts';
-import type { Mailer } from './mail.ts';
+import { codeMail, MOODS, type Mailer } from './mail.ts';
 
 const sha256 = (t: string) => createHash('sha256').update(t).digest();
 const token = () => randomBytes(32).toString('base64url');
@@ -85,6 +85,12 @@ const verifyBody = {
   additionalProperties: false,
   properties: { email, code },
 } as const;
+const moodBody = {
+  type: 'object',
+  required: ['mood'],
+  additionalProperties: false,
+  properties: { mood: { type: 'string', enum: MOODS } },
+} as const;
 const deleteBody = {
   type: 'object',
   required: ['password'],
@@ -97,11 +103,12 @@ export function authRoutes(app: FastifyInstance, repo: Repo, cfg: Config, mail: 
   const limited = { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } };
 
   // A fresh 6-digit code for the purpose, emailed after the reply (so its timing reveals nothing). A new one replaces the last.
-  async function sendCode(req: FastifyRequest, userId: string, to: string, purpose: CodePurpose) {
+  // The email is in the account's mood (null: the default).
+  async function sendCode(req: FastifyRequest, userId: string, to: string, purpose: CodePurpose, mood: string | null) {
     const code = String(randomInt(0, 1_000_000)).padStart(6, '0'),
       minutes = Math.round(cfg.resetMs / 60_000);
     await repo.putCode(userId, purpose, sha256(code), new Date(Date.now() + cfg.resetMs));
-    mail({ to, subject: 'Your What Matters code', text: CODE_TEXT[purpose](code, minutes) }).catch((e: Error) =>
+    mail({ to, ...codeMail(purpose, code, minutes, mood) }).catch((e: Error) =>
       req.log.error({ err: e.message }, purpose + ' email failed'),
     );
   }
@@ -111,7 +118,7 @@ export function authRoutes(app: FastifyInstance, repo: Repo, cfg: Config, mail: 
     // A taken email gets the same answer as bad credentials, never "already registered".
     if (!id) return reply.code(400).send(INVALID);
     // No tokens yet: the account signs in once the emailed code is entered (/auth/verify).
-    await sendCode(req, id, normEmail(req.body.email), 'verify');
+    await sendCode(req, id, normEmail(req.body.email), 'verify', null);
     return reply.code(201).send({ verify: true });
   });
 
@@ -133,7 +140,7 @@ export function authRoutes(app: FastifyInstance, repo: Repo, cfg: Config, mail: 
     async (req, reply) => {
       const email = normEmail(req.body.email),
         u = await repo.userByEmail(email);
-      if (u && !u.verified) await sendCode(req, u.id, email, 'verify');
+      if (u && !u.verified) await sendCode(req, u.id, email, 'verify', u.mood);
       return reply.code(202).send();
     },
   );
@@ -171,7 +178,7 @@ export function authRoutes(app: FastifyInstance, repo: Repo, cfg: Config, mail: 
     async (req, reply) => {
       const email = normEmail(req.body.email),
         u = await repo.userByEmail(email);
-      if (u) await sendCode(req, u.id, email, 'reset');
+      if (u) await sendCode(req, u.id, email, 'reset', u.mood);
       return reply.code(202).send();
     },
   );
@@ -208,6 +215,14 @@ export function authRoutes(app: FastifyInstance, repo: Repo, cfg: Config, mail: 
     },
   );
 
+  // The colour mood chosen in the app, so emails match it. The phone sends it when it changes.
+  app.put<{ Body: { mood: string } }>('/account/mood', { schema: { body: moodBody } }, async (req, reply) => {
+    const userId = await userOf(repo, req);
+    if (!userId) return reply.code(401).send({ error: 'signed_out' });
+    await repo.setMood(userId, req.body.mood);
+    return reply.code(204).send();
+  });
+
   // Keep my account: cancels a scheduled deletion.
   app.post('/account/keep', async (req, reply) => {
     const userId = await userOf(repo, req);
@@ -216,11 +231,3 @@ export function authRoutes(app: FastifyInstance, repo: Repo, cfg: Config, mail: 
     return reply.code(204).send();
   });
 }
-
-// ponytail: plain text only; an HTML template when the owner supplies one. Wording not in the handoff: for owner review.
-const CODE_TEXT: Record<CodePurpose, (code: string, minutes: number) => string> = {
-  reset: (code, minutes) =>
-    `Your What Matters code is ${code}.\n\nIt works for ${minutes} minutes. If you didn't ask for it, you can ignore this email; nothing has changed.`,
-  verify: (code, minutes) =>
-    `Your What Matters code is ${code}.\n\nEnter it in the app to confirm your email. It works for ${minutes} minutes. If you didn't create an account, you can ignore this email.`,
-};

@@ -3,7 +3,14 @@ import assert from 'node:assert/strict';
 import { fresh } from './helpers.ts';
 import { migrate } from '../src/db.ts';
 import { createRepo } from '../src/repo.ts';
+import fs from 'node:fs';
+import path from 'node:path';
 import { DELETE_DAYS } from '../src/auth.ts';
+import { codeMail, DEFAULT_MOOD, MOODS } from '../src/mail.ts';
+import tokens from '../src/design-tokens.json' with { type: 'json' };
+
+// The workspace's handoff, when this repo sits beside it.
+const HANDOFF_TOKENS = path.join(import.meta.dirname, '..', '..', 'handoff', 'tokens', 'design-tokens.json');
 
 const env = (s: string) => Buffer.from(s).toString('base64');
 
@@ -190,6 +197,46 @@ test('email verification: a password reset also proves the email', async () => {
   } finally {
     await t.close();
   }
+});
+
+test("emails use the account's mood: the default until the phone sends one", async () => {
+  const t = await fresh();
+  try {
+    const last = async () => {
+      await new Promise((r) => setImmediate(r));
+      return t.sent.at(-1)!;
+    };
+    const { accessToken } = await t.register();
+    const first = t.sent.at(-1)!;
+    assert.match(first.html!, new RegExp(tokens.moods[DEFAULT_MOOD]['--surface']));
+    assert.equal((await t.call('PUT', '/account/mood', { mood: 'evergreen' })).statusCode, 401);
+    assert.equal((await t.call('PUT', '/account/mood', { mood: 'neon' }, accessToken)).statusCode, 400);
+    assert.equal((await t.call('PUT', '/account/mood', { mood: 'evergreen' }, accessToken)).statusCode, 204);
+    await t.call('POST', '/auth/forgot', { email: 'alex@example.com' });
+    const m = await last();
+    assert.match(m.html!, new RegExp(tokens.moods.evergreen['--surface']));
+    assert.match(m.html!, /color-scheme" content="dark"/);
+    const code = /\b(\d{6})\b/.exec(m.text)![1];
+    assert.ok(m.html!.includes('>' + code + '<'));
+  } finally {
+    await t.close();
+  }
+});
+
+test('code emails: every mood draws, with the same words as the text part and never a dash', () => {
+  for (const mood of MOODS)
+    for (const purpose of ['verify', 'reset'] as const) {
+      const m = codeMail(purpose, '123456', 15, mood);
+      const words = m.html.replace(/<style>[\s\S]*?<\/style>|<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+      for (const s of m.text.replace(' 123456.', '').split(/\n+|(?<=\.) /))
+        assert.ok(words.includes(s), mood + ' ' + purpose + ': ' + s);
+      assert.ok(words.includes(' 123456 '));
+      assert.doesNotMatch(m.text + words, /[\u2013\u2014]|--/);
+    }
+});
+
+test("design tokens are the handoff's, unchanged", { skip: !fs.existsSync(HANDOFF_TOKENS) }, () => {
+  assert.deepEqual(JSON.parse(fs.readFileSync(HANDOFF_TOKENS, 'utf8')), tokens);
 });
 
 test('account deletion: password again, 30 days to change your mind, then everything goes', async () => {

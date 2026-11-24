@@ -1,3 +1,5 @@
 node_modules/
 # Docs keep their hand layout (tables, line breaks).
 *.md
+# Copied unchanged from handoff/tokens/design-tokens.json.
+src/design-tokens.json

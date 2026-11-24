@@ -50,13 +50,18 @@ export function createRepo(db: Db) {
       );
       return rows[0]?.id ?? null;
     },
-    async userByEmail(email: string): Promise<{ id: string; passwordHash: string; verified: boolean } | null> {
-      const { rows } = await db.query<{ id: string; password_hash: string; verified: boolean }>(
-        'SELECT id, password_hash, verified_at IS NOT NULL AS verified FROM users WHERE email = $1',
+    async userByEmail(
+      email: string,
+    ): Promise<{ id: string; passwordHash: string; verified: boolean; mood: string | null } | null> {
+      const { rows } = await db.query<{ id: string; password_hash: string; verified: boolean; mood: string | null }>(
+        'SELECT id, password_hash, verified_at IS NOT NULL AS verified, mood FROM users WHERE email = $1',
         [lockText(email)],
       );
-      return rows[0] ? { id: rows[0].id, passwordHash: rows[0].password_hash, verified: rows[0].verified } : null;
+      const r = rows[0];
+      return r ? { id: r.id, passwordHash: r.password_hash, verified: r.verified, mood: r.mood } : null;
     },
+    /** The colour mood the person chose in the app, which their emails use. */
+    setMood: (userId: string, mood: string) => db.query('UPDATE users SET mood = $2 WHERE id = $1', [userId, mood]),
     async passwordHashOf(userId: string): Promise<string | null> {
       const { rows } = await db.query<{ password_hash: string }>('SELECT password_hash FROM users WHERE id = $1', [
         userId,
