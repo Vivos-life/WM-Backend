@@ -416,6 +416,57 @@ test('logout ends the session; expired access tokens are refused', async () => {
   }
 });
 
+test('signed-in devices: named at sign-in, kept through refresh, one signed out from another', async () => {
+  const t = await fresh();
+  try {
+    const login = async (device?: string) =>
+      (await t.call('POST', '/auth/login', { email: 'alex@example.com', password: 'correct horse', device })).json();
+    const first = await t.register(); // verify sends no name
+    const ipad = await login('iPad Air'),
+      phone = await login('iPhone 16 Pro');
+    const ipad2 = (await t.call('POST', '/auth/refresh', { refreshToken: ipad.refreshToken })).json();
+    const list = (await t.call('GET', '/account/devices', undefined, phone.accessToken)).json().devices;
+    assert.deepEqual(
+      list.map((d: { name: string; me: boolean }) => [d.name, d.me]),
+      [
+        ['iPad Air', false],
+        ['iPhone 16 Pro', true],
+        [null, false],
+      ],
+      'latest first; the refresh made the iPad latest and kept its name',
+    );
+    assert.ok(list.every((d: { lastUsed: string }) => !Number.isNaN(Date.parse(d.lastUsed))));
+
+    const someone = (await t.register('sam@example.com')).accessToken;
+    assert.equal((await t.call('DELETE', '/account/devices/' + list[0].id, undefined, someone)).statusCode, 404);
+    assert.equal((await t.call('DELETE', '/account/devices/nope', undefined, phone.accessToken)).statusCode, 400);
+    assert.equal(
+      (await t.call('DELETE', '/account/devices/' + list[0].id, undefined, phone.accessToken)).statusCode,
+      204,
+    );
+    assert.equal(
+      (await t.call('GET', '/blobs', undefined, ipad2.accessToken)).statusCode,
+      401,
+      'its access stops at once',
+    );
+    assert.equal((await t.call('POST', '/auth/refresh', { refreshToken: ipad2.refreshToken })).statusCode, 401);
+    assert.equal((await t.call('GET', '/blobs', undefined, first.accessToken)).statusCode, 200, 'the others stay');
+    assert.equal((await t.call('GET', '/account/devices', undefined, phone.accessToken)).json().devices.length, 2);
+    assert.equal(
+      (
+        await t.call('POST', '/auth/login', {
+          email: 'alex@example.com',
+          password: 'correct horse',
+          device: 'x'.repeat(65),
+        })
+      ).statusCode,
+      400,
+    );
+  } finally {
+    await t.close();
+  }
+});
+
 test('login is rate limited', async () => {
   const t = await fresh();
   try {

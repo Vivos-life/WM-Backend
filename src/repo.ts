@@ -11,8 +11,11 @@ import type { Db } from './db.ts';
 const lock = (b: Buffer): Buffer => b;
 const unlock = (b: Buffer): Buffer => b;
 const lockText = (s: string) => lock(Buffer.from(s, 'utf8')).toString('utf8');
+const unlockText = (s: string) => unlock(Buffer.from(s, 'utf8')).toString('utf8');
 
 export type NewSession = { accessHash: Buffer; accessExpires: Date; refreshHash: Buffer; refreshExpires: Date };
+/** A signed-in device: one session family. lastUsed is its latest refresh (or sign-in). */
+export type Device = { id: string; name: string | null; lastUsed: Date; me: boolean };
 export type CodePurpose = 'reset' | 'verify';
 export type Blob = { kind: string; version: number; envelope: Buffer; updatedAt: Date };
 
@@ -32,10 +35,11 @@ export function createRepo(db: Db) {
       c.release();
     }
   }
-  const insertSession = (q: Db['query'], userId: string, family: string, s: NewSession) =>
+  // device is already locked (a refresh copies it from the row it replaces).
+  const insertSession = (q: Db['query'], userId: string, family: string, s: NewSession, device: string | null) =>
     q(
-      'INSERT INTO sessions (user_id, family, access_hash, access_expires, refresh_hash, refresh_expires) VALUES ($1, $2, $3, $4, $5, $6)',
-      [userId, family, s.accessHash, s.accessExpires, s.refreshHash, s.refreshExpires],
+      'INSERT INTO sessions (user_id, family, access_hash, access_expires, refresh_hash, refresh_expires, device) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+      [userId, family, s.accessHash, s.accessExpires, s.refreshHash, s.refreshExpires, device],
     );
 
   return {
@@ -99,8 +103,8 @@ export function createRepo(db: Db) {
     },
 
     // ---- Sessions
-    createSession: (userId: string, family: string, s: NewSession) =>
-      insertSession(db.query.bind(db) as Db['query'], userId, family, s),
+    createSession: (userId: string, family: string, s: NewSession, device: string | null) =>
+      insertSession(db.query.bind(db) as Db['query'], userId, family, s, device === null ? null : lockText(device)),
     async sessionUser(accessHash: Buffer): Promise<string | null> {
       const { rows } = await db.query<{ user_id: string }>(
         'SELECT user_id FROM sessions WHERE access_hash = $1 AND access_expires > now() AND rotated_at IS NULL AND revoked_at IS NULL',
@@ -111,8 +115,15 @@ export function createRepo(db: Db) {
     /** Swaps a refresh token for `next`. A rotated token presented again was copied: its whole session family is revoked. */
     rotateSession: (refreshHash: Buffer, next: NewSession) =>
       tx(async (q) => {
-        const { rows } = await q<{ id: string; user_id: string; family: string; rotated: boolean; live: boolean }>(
-          `SELECT id, user_id, family, rotated_at IS NOT NULL AS rotated, revoked_at IS NULL AND refresh_expires > now() AS live
+        const { rows } = await q<{
+          id: string;
+          user_id: string;
+          family: string;
+          device: string | null;
+          rotated: boolean;
+          live: boolean;
+        }>(
+          `SELECT id, user_id, family, device, rotated_at IS NOT NULL AS rotated, revoked_at IS NULL AND refresh_expires > now() AS live
            FROM sessions WHERE refresh_hash = $1 FOR UPDATE`,
           [refreshHash],
         );
@@ -121,7 +132,7 @@ export function createRepo(db: Db) {
           await q('UPDATE sessions SET revoked_at = now() WHERE family = $1 AND revoked_at IS NULL', [s.family]);
         if (!s || s.rotated || !s.live) return false;
         await q('UPDATE sessions SET rotated_at = now() WHERE id = $1', [s.id]);
-        await insertSession(q, s.user_id, s.family, next);
+        await insertSession(q, s.user_id, s.family, next, s.device);
         return true;
       }),
     endSessionOf: (accessHash: Buffer) =>
@@ -129,6 +140,30 @@ export function createRepo(db: Db) {
         'UPDATE sessions SET revoked_at = now() WHERE revoked_at IS NULL AND family = (SELECT family FROM sessions WHERE access_hash = $1)',
         [accessHash],
       ),
+
+    /** The user's signed-in devices, latest first; me is the one holding accessHash. Each live family has one current row. */
+    async devicesOf(userId: string, accessHash: Buffer): Promise<Device[]> {
+      const { rows } = await db.query<{ family: string; device: string | null; created_at: Date; me: boolean }>(
+        `SELECT family, device, created_at, access_hash = $2 AS me FROM sessions
+         WHERE user_id = $1 AND rotated_at IS NULL AND revoked_at IS NULL AND refresh_expires > now()
+         ORDER BY created_at DESC`,
+        [userId, accessHash],
+      );
+      return rows.map((r) => ({
+        id: r.family,
+        name: r.device === null ? null : unlockText(r.device),
+        lastUsed: r.created_at,
+        me: r.me,
+      }));
+    },
+    /** Signs out one of the user's devices. false if it isn't theirs or is already signed out. */
+    async endFamily(userId: string, family: string): Promise<boolean> {
+      const r = await db.query(
+        'UPDATE sessions SET revoked_at = now() WHERE user_id = $1 AND family = $2 AND revoked_at IS NULL',
+        [userId, family],
+      );
+      return (r.rowCount ?? 0) > 0;
+    },
 
     // ---- Emailed codes (reset a password, verify an email)
     putCode: (userId: string, purpose: CodePurpose, codeHash: Buffer, expires: Date) =>

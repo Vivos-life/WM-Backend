@@ -27,7 +27,7 @@ for a decision).
 | 5 | Email | done locally; live sender blocked |
 | 6 | Deployment and backups | blocked |
 | 7 | Encryption at rest | blocked |
-| 8 | Server for the held-back screens | open |
+| 8 | Server for the held-back screens | open (signed-in devices built) |
 | 9 | Membership and billing | blocked |
 | 10 | After the phone app | open |
 
@@ -74,9 +74,9 @@ sealing (`../PLAN.md`).
 
 ### 8. Server for the held-back screens: open
 
-What the phone's held-back screens need (see `../mobile/PLAN.md`): Download your data (an export of the account), signed-in
-devices (a list of sessions, sign out one), moving to a new phone, complaints, reminders and notifications (a push service).
-Build each with its screen.
+What the phone's held-back screens need (see `../mobile/PLAN.md`): moving to a new phone, complaints, reminders and notifications (a push service).
+Built: signed-in devices (`GET /account/devices`, `DELETE /account/devices/:id`; a device is a session family, named
+at sign-in, last used at its latest refresh). Build each with its screen. Download your data needs nothing here: the phone holds the household and exports it.
 
 ### 9. Membership and billing: blocked
 

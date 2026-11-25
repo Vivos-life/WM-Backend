@@ -39,9 +39,10 @@ function pair(cfg: Config) {
   const tokens: Tokens = { accessToken: a, refreshToken: r, accessExpiresAt: row.accessExpires.toISOString() };
   return { row, tokens };
 }
-async function issue(repo: Repo, cfg: Config, userId: string): Promise<Tokens> {
+/** device: the name the phone gives itself, shown in Signed-in devices. */
+async function issue(repo: Repo, cfg: Config, userId: string, device?: string): Promise<Tokens> {
   const p = pair(cfg);
-  await repo.createSession(userId, randomUUID(), p.row);
+  await repo.createSession(userId, randomUUID(), p.row, device || null);
   return p.tokens;
 }
 const bearer = (req: FastifyRequest) => /^Bearer (\S+)$/.exec(req.headers.authorization ?? '')?.[1];
@@ -52,6 +53,7 @@ export async function userOf(repo: Repo, req: FastifyRequest): Promise<string | 
   return t ? repo.sessionUser(sha256(t)) : null;
 }
 
+const device = { type: 'string', maxLength: 64 } as const;
 // NCSC: length over complexity rules. The upper bound keeps hashing cheap for an attacker's huge inputs.
 const credentials = {
   type: 'object',
@@ -60,6 +62,7 @@ const credentials = {
   properties: {
     email: { type: 'string', format: 'email', maxLength: 254 },
     password: { type: 'string', minLength: 8, maxLength: 128 },
+    device,
   },
 } as const;
 const refreshBody = {
@@ -68,7 +71,7 @@ const refreshBody = {
   additionalProperties: false,
   properties: { refreshToken: { type: 'string', maxLength: 64 } },
 } as const;
-type Creds = { email: string; password: string };
+type Creds = { email: string; password: string; device?: string };
 const email = { type: 'string', format: 'email', maxLength: 254 } as const,
   password = credentials.properties.password;
 const emailBody = { type: 'object', required: ['email'], additionalProperties: false, properties: { email } } as const;
@@ -77,13 +80,13 @@ const resetBody = {
   type: 'object',
   required: ['email', 'code', 'password'],
   additionalProperties: false,
-  properties: { email, code, password },
+  properties: { email, code, password, device },
 } as const;
 const verifyBody = {
   type: 'object',
   required: ['email', 'code'],
   additionalProperties: false,
-  properties: { email, code },
+  properties: { email, code, device },
 } as const;
 const moodBody = {
   type: 'object',
@@ -122,14 +125,14 @@ export function authRoutes(app: FastifyInstance, repo: Repo, cfg: Config, mail: 
     return reply.code(201).send({ verify: true });
   });
 
-  app.post<{ Body: { email: string; code: string } }>(
+  app.post<{ Body: { email: string; code: string; device?: string } }>(
     '/auth/verify',
     { ...limited, schema: { body: verifyBody } },
     async (req, reply) => {
       const userId = await repo.useCode(normEmail(req.body.email), 'verify', sha256(req.body.code));
       if (!userId) return reply.code(400).send({ error: 'invalid_code' });
       await repo.verifyEmail(userId);
-      return issue(repo, cfg, userId);
+      return issue(repo, cfg, userId, req.body.device);
     },
   );
 
@@ -151,7 +154,7 @@ export function authRoutes(app: FastifyInstance, repo: Repo, cfg: Config, mail: 
     if (!u || !ok) return reply.code(401).send(INVALID);
     // Only someone with the right password learns this; the app then asks for the emailed code.
     if (!u.verified) return reply.code(403).send({ error: 'email_unverified' });
-    return issue(repo, cfg, u.id);
+    return issue(repo, cfg, u.id, req.body.device);
   });
 
   app.post<{ Body: { refreshToken: string } }>(
@@ -184,14 +187,14 @@ export function authRoutes(app: FastifyInstance, repo: Repo, cfg: Config, mail: 
   );
 
   // The code works once, for RESET_CODE_MINUTES, and 5 wrong tries end it. A new password signs out every device.
-  app.post<{ Body: { email: string; code: string; password: string } }>(
+  app.post<{ Body: { email: string; code: string; password: string; device?: string } }>(
     '/auth/reset',
     { ...limited, schema: { body: resetBody } },
     async (req, reply) => {
       const userId = await repo.useCode(normEmail(req.body.email), 'reset', sha256(req.body.code));
       if (!userId) return reply.code(400).send({ error: 'invalid_code' });
       await repo.resetPassword(userId, await hash(req.body.password));
-      return issue(repo, cfg, userId);
+      return issue(repo, cfg, userId, req.body.device);
     },
   );
 
@@ -222,6 +225,26 @@ export function authRoutes(app: FastifyInstance, repo: Repo, cfg: Config, mail: 
     await repo.setMood(userId, req.body.mood);
     return reply.code(204).send();
   });
+
+  // Signed-in devices: each sign-in that hasn't ended, latest first; me marks the one asking.
+  app.get('/account/devices', async (req, reply) => {
+    const userId = await userOf(repo, req);
+    if (!userId) return reply.code(401).send({ error: 'signed_out' });
+    const devices = await repo.devicesOf(userId, sha256(bearer(req)!));
+    return { devices: devices.map((d) => ({ ...d, lastUsed: d.lastUsed.toISOString() })) };
+  });
+
+  // Signs out one device: its tokens stop working at once, and the phone forgets its household the next time it connects.
+  app.delete<{ Params: { id: string } }>(
+    '/account/devices/:id',
+    { schema: { params: { type: 'object', properties: { id: { type: 'string', format: 'uuid' } } } } },
+    async (req, reply) => {
+      const userId = await userOf(repo, req);
+      if (!userId) return reply.code(401).send({ error: 'signed_out' });
+      if (!(await repo.endFamily(userId, req.params.id))) return reply.code(404).send({ error: 'not_found' });
+      return reply.code(204).send();
+    },
+  );
 
   // Keep my account: cancels a scheduled deletion.
   app.post('/account/keep', async (req, reply) => {
