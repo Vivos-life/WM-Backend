@@ -10,6 +10,7 @@ import { memoryStore } from '../src/photos.ts';
 process.env.TEST_DATABASE_URL ||= 'postgres://wm:wm-dev-only@127.0.0.1:5544/wm_test';
 for (const k of ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS']) process.env[k] ||= 'unused.invalid';
 process.env.MAIL_FROM ||= 'What Matters <test@example.com>';
+process.env.COMPLAINTS_TO ||= 'complaints@example.com';
 // Photos go to memory in tests; the R2 settings only need to be present.
 for (const k of ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET']) process.env[k] ||= 'unused';
 

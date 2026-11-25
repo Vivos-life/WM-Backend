@@ -66,6 +66,10 @@ export function createRepo(db: Db) {
     },
     /** The colour mood the person chose in the app, which their emails use. */
     setMood: (userId: string, mood: string) => db.query('UPDATE users SET mood = $2 WHERE id = $1', [userId, mood]),
+    async emailOf(userId: string): Promise<string | null> {
+      const { rows } = await db.query<{ email: string }>('SELECT email FROM users WHERE id = $1', [userId]);
+      return rows[0] ? unlockText(rows[0].email) : null;
+    },
     async passwordHashOf(userId: string): Promise<string | null> {
       const { rows } = await db.query<{ password_hash: string }>('SELECT password_hash FROM users WHERE id = $1', [
         userId,
@@ -163,6 +167,24 @@ export function createRepo(db: Db) {
         [userId, family],
       );
       return (r.rowCount ?? 0) > 0;
+    },
+
+    // ---- Complaints
+    /** Saves a complaint under its reference: when it was received. */
+    async addComplaint(userId: string, ref: string, body: string): Promise<Date> {
+      const { rows } = await db.query<{ created_at: Date }>(
+        'INSERT INTO complaints (user_id, ref, body) VALUES ($1, $2, $3) RETURNING created_at',
+        [userId, ref, lockText(body)],
+      );
+      return rows[0].created_at;
+    },
+    /** The user's complaints, newest first. */
+    async complaintsOf(userId: string): Promise<{ ref: string; body: string; at: Date }[]> {
+      const { rows } = await db.query<{ ref: string; body: string; created_at: Date }>(
+        'SELECT ref, body, created_at FROM complaints WHERE user_id = $1 ORDER BY created_at DESC',
+        [userId],
+      );
+      return rows.map((r) => ({ ref: r.ref, body: unlockText(r.body), at: r.created_at }));
     },
 
     // ---- Emailed codes (reset a password, verify an email)

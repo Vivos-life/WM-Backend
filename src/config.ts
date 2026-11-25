@@ -32,6 +32,7 @@ export function loadConfig(env: 'app' | 'test' = 'app') {
       pass: need('SMTP_PASS'),
     },
     mailFrom: need('MAIL_FROM'),
+    complaintsTo: need('COMPLAINTS_TO'),
     resetMs: int('RESET_CODE_MINUTES', 15) * 60_000,
     accessMs: int('ACCESS_TOKEN_MINUTES', 15) * 60_000,
     refreshMs: int('REFRESH_TOKEN_DAYS', 30) * 86_400_000,

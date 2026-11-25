@@ -27,7 +27,7 @@ for a decision).
 | 5 | Email | done locally; live sender blocked |
 | 6 | Deployment and backups | blocked |
 | 7 | Encryption at rest | blocked |
-| 8 | Server for the held-back screens | open (signed-in devices built) |
+| 8 | Server for the held-back screens | open (devices and complaints built; notifications open) |
 | 9 | Membership and billing | blocked |
 | 10 | After the phone app | open |
 
@@ -50,8 +50,8 @@ due accounts at start and hourly, photos included. Not built: removal from backu
 ### 4. Own photos: done
 
 `src/photos.ts`: `PUT/GET/DELETE /photos/:id`, signed in only, JPEG up to 1 MB, kept under `u/<user id>/` in the private R2
-bucket (EU jurisdiction). `npm run r2:check` tries the real bucket. Not built: deleting a replaced photo (it stays until the
-account goes).
+bucket (EU jurisdiction). `npm run r2:check` tries the real bucket. A replaced photo is deleted by the phone
+(`DELETE /photos/:id`); one it couldn't reach the server for stays until the account goes.
 
 ### 5. Email: done locally
 
@@ -74,9 +74,14 @@ sealing (`../PLAN.md`).
 
 ### 8. Server for the held-back screens: open
 
-What the phone's held-back screens need (see `../mobile/PLAN.md`): moving to a new phone, complaints, reminders and notifications (a push service).
-Built: signed-in devices (`GET /account/devices`, `DELETE /account/devices/:id`; a device is a session family, named
-at sign-in, last used at its latest refresh). Build each with its screen. Download your data needs nothing here: the phone holds the household and exports it.
+What the phone's held-back screens still need (see `../mobile/PLAN.md`): reminders and notifications (a push service). Build
+each with its screen.
+
+Built: signed-in devices (`GET /account/devices`, `DELETE /account/devices/:id`; a device is a session family, named at
+sign-in, last used at its latest refresh); complaints (`src/complaints.ts`: `POST /complaints` saves one with a reference and
+emails it to `COMPLAINTS_TO`; `GET /complaints` lists the person's own, newest first, each with `replies`, always empty until
+the admin panel writes them). Download your data and Move to a new phone need nothing
+here: the phone holds the household, and signing in moves it.
 
 ### 9. Membership and billing: blocked
 

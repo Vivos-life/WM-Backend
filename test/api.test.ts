@@ -467,6 +467,43 @@ test('signed-in devices: named at sign-in, kept through refresh, one signed out 
   }
 });
 
+test('complaints: signed in only, saved with a reference, emailed to COMPLAINTS_TO, acknowledged within 30 days', async () => {
+  const t = await fresh();
+  try {
+    const { accessToken } = await t.register();
+    assert.equal((await t.call('POST', '/complaints', { text: 'x' })).statusCode, 401);
+    assert.equal((await t.call('POST', '/complaints', { text: '   ' }, accessToken)).statusCode, 400);
+    assert.equal((await t.call('POST', '/complaints', { text: 'x'.repeat(5001) }, accessToken)).statusCode, 400);
+    const r = await t.call('POST', '/complaints', { text: '  You kept my old photo.  ' }, accessToken);
+    assert.equal(r.statusCode, 201);
+    const { ref, date, ack, text, replies } = r.json();
+    assert.equal(text, 'You kept my old photo.');
+    assert.deepEqual(replies, []);
+    assert.match(ref, /^WM-[0-9A-F]{8}$/);
+    assert.equal((Date.parse(ack) - Date.parse(date)) / 86_400_000, 30);
+    const saved = await t.db.query('SELECT ref, body FROM complaints');
+    assert.deepEqual(saved.rows, [{ ref, body: 'You kept my old photo.' }]);
+    await new Promise((res) => setImmediate(res));
+    const m = t.sent.findLast((x) => x.to === 'complaints@example.com')!;
+    assert.equal(m.subject, 'Complaint ' + ref);
+    assert.ok(m.text.includes('alex@example.com') && m.text.includes('You kept my old photo.') && !m.html);
+
+    // Each person sees their own, newest first.
+    await t.call('POST', '/complaints', { text: 'Second one.' }, accessToken);
+    const mine = (await t.call('GET', '/complaints', undefined, accessToken)).json().complaints;
+    assert.deepEqual(
+      mine.map((c: { text: string }) => c.text),
+      ['Second one.', 'You kept my old photo.'],
+    );
+    assert.deepEqual(mine[1], { ref, text: 'You kept my old photo.', date, ack, replies: [] });
+    const sam = (await t.register('sam@example.com')).accessToken;
+    assert.deepEqual((await t.call('GET', '/complaints', undefined, sam)).json().complaints, []);
+    assert.equal((await t.call('GET', '/complaints')).statusCode, 401);
+  } finally {
+    await t.close();
+  }
+});
+
 test('login is rate limited', async () => {
   const t = await fresh();
   try {

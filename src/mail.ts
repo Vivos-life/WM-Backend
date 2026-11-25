@@ -91,3 +91,11 @@ export function codeMail(purpose: CodePurpose, code: string, minutes: number, mo
 </html>`;
   return { subject: 'Your What Matters code', text: `${lead} ${code}.\n\n${body} ${note}`, html };
 }
+
+/** A complaint, to the team's inbox (COMPLAINTS_TO): plain text, so nothing the person typed is ever drawn as HTML. */
+export function complaintMail(ref: string, from: string, received: string, ackBy: string, text: string) {
+  return {
+    subject: `Complaint ${ref}`,
+    text: `Reference: ${ref}\nAccount: ${from}\nReceived: ${received}\nAcknowledge by: ${ackBy}\n\n${text}`,
+  };
+}
