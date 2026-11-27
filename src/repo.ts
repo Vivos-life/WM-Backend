@@ -13,6 +13,8 @@ const unlock = (b: Buffer): Buffer => b;
 const lockText = (s: string) => lock(Buffer.from(s, 'utf8')).toString('utf8');
 const unlockText = (s: string) => unlock(Buffer.from(s, 'utf8')).toString('utf8');
 
+/** How long a refresh token that was just used may be used again (the phone never got the answer: signal lost, app closed). */
+const RETRY_SECONDS = 30;
 export type NewSession = { accessHash: Buffer; accessExpires: Date; refreshHash: Buffer; refreshExpires: Date };
 /** A signed-in device: one session family. lastUsed is its latest refresh (or sign-in). */
 export type Device = { id: string; name: string | null; lastUsed: Date; me: boolean };
@@ -116,7 +118,8 @@ export function createRepo(db: Db) {
       );
       return rows[0]?.user_id ?? null;
     },
-    /** Swaps a refresh token for `next`. A rotated token presented again was copied: its whole session family is revoked. */
+    /** Swaps a refresh token for `next`. A rotated token presented again after RETRY_SECONDS was copied: its whole session
+     *  family is revoked. Within them it is a retry of an answer that was lost on the way, and gets a new pair. */
     rotateSession: (refreshHash: Buffer, next: NewSession) =>
       tx(async (q) => {
         const { rows } = await q<{
@@ -125,17 +128,30 @@ export function createRepo(db: Db) {
           family: string;
           device: string | null;
           rotated: boolean;
+          recent: boolean;
           live: boolean;
         }>(
-          `SELECT id, user_id, family, device, rotated_at IS NOT NULL AS rotated, revoked_at IS NULL AND refresh_expires > now() AS live
+          `SELECT id, user_id, family, device, rotated_at IS NOT NULL AS rotated,
+                  rotated_at > now() - interval '${RETRY_SECONDS} seconds' AS recent,
+                  revoked_at IS NULL AND refresh_expires > now() AS live
            FROM sessions WHERE refresh_hash = $1 FOR UPDATE`,
           [refreshHash],
         );
         const s = rows[0];
-        if (s?.rotated)
+        if (!s) return false;
+        if (s.rotated && !s.recent) {
           await q('UPDATE sessions SET revoked_at = now() WHERE family = $1 AND revoked_at IS NULL', [s.family]);
-        if (!s || s.rotated || !s.live) return false;
-        await q('UPDATE sessions SET rotated_at = now() WHERE id = $1', [s.id]);
+          return false;
+        }
+        if (!s.live) return false;
+        // Inside the retry window a rotated token is the phone asking again because the answer never reached it: give a new
+        // pair, and retire the one that was lost so the device still has a single live session.
+        if (s.rotated)
+          await q(
+            'UPDATE sessions SET rotated_at = now() WHERE family = $1 AND rotated_at IS NULL AND revoked_at IS NULL',
+            [s.family],
+          );
+        else await q('UPDATE sessions SET rotated_at = now() WHERE id = $1', [s.id]);
         await insertSession(q, s.user_id, s.family, next, s.device);
         return true;
       }),

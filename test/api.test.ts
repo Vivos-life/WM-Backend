@@ -382,10 +382,36 @@ test('refresh rotates; reusing an old refresh token ends the session', async () 
     );
     assert.equal((await t.call('GET', '/blobs', undefined, two.accessToken)).statusCode, 200);
 
-    // Someone replays the first refresh token: refused, and the live session is revoked too.
+    // Someone replays the first refresh token after the leeway: refused, and the live session is revoked too.
+    await t.db.query("UPDATE sessions SET rotated_at = rotated_at - interval '1 minute' WHERE rotated_at IS NOT NULL");
     assert.equal((await t.call('POST', '/auth/refresh', { refreshToken: one.refreshToken })).statusCode, 401);
     assert.equal((await t.call('GET', '/blobs', undefined, two.accessToken)).statusCode, 401);
     assert.equal((await t.call('POST', '/auth/refresh', { refreshToken: two.refreshToken })).statusCode, 401);
+  } finally {
+    await t.close();
+  }
+});
+
+test('a refresh whose answer was lost can be retried for 30 seconds, without ending the session', async () => {
+  const t = await fresh();
+  try {
+    const one = await t.register();
+    const lost = (await t.call('POST', '/auth/refresh', { refreshToken: one.refreshToken })).json(); // the phone never got this
+    const retry = await t.call('POST', '/auth/refresh', { refreshToken: one.refreshToken });
+    assert.equal(retry.statusCode, 200, 'the same refresh token again, a moment later');
+    const next = retry.json();
+    assert.equal((await t.call('GET', '/blobs', undefined, next.accessToken)).statusCode, 200);
+    assert.equal(
+      (await t.call('GET', '/blobs', undefined, lost.accessToken)).statusCode,
+      401,
+      'the answer that was lost is retired, so one device never holds two live sessions',
+    );
+    const { devices } = (await t.call('GET', '/account/devices', undefined, next.accessToken)).json();
+    assert.equal(devices.length, 1);
+    // Later than that it is a replay, and ends the session.
+    await t.db.query("UPDATE sessions SET rotated_at = rotated_at - interval '1 minute' WHERE rotated_at IS NOT NULL");
+    assert.equal((await t.call('POST', '/auth/refresh', { refreshToken: one.refreshToken })).statusCode, 401);
+    assert.equal((await t.call('GET', '/blobs', undefined, next.accessToken)).statusCode, 401);
   } finally {
     await t.close();
   }
