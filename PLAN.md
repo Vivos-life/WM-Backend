@@ -26,10 +26,11 @@ for a decision).
 | 4 | Own photos (R2) | done |
 | 5 | Email | done locally; live sender blocked |
 | 6 | Deployment and backups | blocked |
-| 7 | Encryption at rest | blocked |
+| 7 | Encryption at rest | open |
 | 8 | Server for the held-back screens | open (devices and complaints built; notifications open) |
 | 9 | Membership and billing | blocked |
 | 10 | After the phone app | open |
+| 11 | Admin routes for the central Vivos panel | open |
 
 ### 1. Accounts and sessions: done
 
@@ -66,16 +67,18 @@ To build: the VPS (process manager, HTTPS, Postgres, migrations on start as now)
 account from backups within 35 days (the privacy notice promises it). Done when the app on a phone off the laptop's Wi-Fi signs
 in, syncs and restores from a backup. **Waits for:** the VPS and the live email sender.
 
-### 7. Encryption at rest: blocked
+### 7. Encryption at rest: open
 
-Every SQL statement is in `src/repo.ts` and every sensitive value passes its `lock()`/`unlock()`, so column encryption is added
-in that one file (with an HMAC lookup column for emails). **Waits for:** the encryption strategy, which also decides the phone's
-sealing (`../PLAN.md`).
+Decided (28 Nov 2026, `../AGENTS.md`): the server holds the keys. Every SQL statement is in `src/repo.ts` and every sensitive
+value passes its `lock()`/`unlock()`, so encryption is added in that one file: AES-256-GCM, a data key per account wrapped by
+the master key (with a key id, so the master key can be rotated), an HMAC lookup column for emails. Photos are encrypted with
+the account's key before they go to R2. The master key is read from a file on the VPS; the owner keeps the offline copy. The
+VPS disk and backups are encrypted in phase 6.
 
 ### 8. Server for the held-back screens: open
 
-What the phone's held-back screens still need (see `../mobile/PLAN.md`): reminders and notifications (a push service). Build
-each with its screen.
+What the phone's held-back screens still need (see `../mobile/PLAN.md`): emails for server events, such as a complaint reply
+(no push, `../AGENTS.md` Notifications); reminders need no server. Build each with its screen.
 
 Built: signed-in devices (`GET /account/devices`, `DELETE /account/devices/:id`; a device is a session family, named at
 sign-in, last used at its latest refresh); complaints (`src/complaints.ts`: `POST /complaints` saves one with a reference and
@@ -91,3 +94,10 @@ Six months free once, two-tap cancel, read-only after it ends (handoff). **Waits
 
 Data shared with the other Vivos apps through APIs each app builds as needed; Ask What Matters (an AI provider, opt-in);
 monitoring; CI (the owner's call: none yet).
+
+### 11. Admin routes for the central Vivos panel: open
+
+Decided (28 Nov 2026, `../AGENTS.md` Admin): staff sign-in and roles, separate from people's accounts; complaints (list, reply,
+which emails the person and fills `replies`, close); support access (a read-only plan while the person's 24 hour consent is on);
+account help (find by email, devices, sessions, deletion, verification code); membership state (with phase 9); an audit log of
+every admin action. **Waits for:** how the central panel signs staff in and calls this backend (`../PLAN.md`).
